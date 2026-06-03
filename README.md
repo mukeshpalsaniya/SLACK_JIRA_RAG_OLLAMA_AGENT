@@ -34,21 +34,6 @@ SLACK_JIRA_RAG_OLLAMA_AGENT is a powerful, privacy-preserving workspace automati
 
 <img width="800" height="436" alt="image" src="https://github.com/user-attachments/assets/b0571adf-315f-43af-b1c8-93bc44a80b22" />
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Slack Workspace                         │
-└────────────────────────┬──────────────────────────────────────┘
-                         │
-                    (Ensemble Agent)
-                         │
-        ┌────────────────┼────────────────┐
-        │                │                │
-    ┌───▼──┐        ┌────▼─────┐    ┌────▼─────┐
-    │OLLAMA│        │    RAG    │    │   JIRA   │
-    │(LLM) │        │ (Vector   │    │  Client  │
-    └──────┘        │   DB)     │    └──────────┘
-                    └───────────┘
-```
 
 ### Components
 
