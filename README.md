@@ -1,6 +1,6 @@
 # SLACK_JIRA_RAG_OLLAMA_AGENT
 
-**Privacy-First Workspace Automation: Building a 100% Private, Local AI Slack Bot!**
+**Privacy-First Workspace Automation: Building a 100% Private, Local AI Slack Agent!**
 
 ---
 
@@ -37,7 +37,7 @@ SLACK_JIRA_RAG_OLLAMA_AGENT is a powerful, privacy-preserving workspace automati
 │                      Slack Workspace                         │
 └────────────────────────┬──────────────────────────────────────┘
                          │
-                    (Slack Bot)
+                    (Ensemble Agent)
                          │
         ┌────────────────┼────────────────┐
         │                │                │
@@ -50,7 +50,7 @@ SLACK_JIRA_RAG_OLLAMA_AGENT is a powerful, privacy-preserving workspace automati
 
 ### Components
 
-- **Slack Bot Interface**: Handles all Slack interactions and events
+- **Slack Agnet Interface**: Handles all Slack interactions and events
 - **OLLAMA LLM**: Runs language models locally for text generation and understanding
 - **RAG Module**: Retrieval-Augmented Generation for enhanced context awareness
 - **JIRA Integration**: REST API client for JIRA project management
@@ -178,7 +178,7 @@ Once the bot is running in your Slack workspace, interact with it using these co
 - ✅ **No Cloud Dependency**: No data is sent to external APIs
 - ✅ **Encryption**: Support for encrypted connections to JIRA and Slack
 - ✅ **Access Control**: Role-based permissions for agent actions
-- ✅ **Audit Logs**: Complete audit trail of bot actions
+- ✅ **Audit Logs**: Complete audit trail of Agent actions
 - ✅ **GDPR Compliant**: No data retention beyond what's necessary
 
 ---
@@ -203,7 +203,7 @@ curl http://localhost:11434/api/tags
 ollama serve
 ```
 
-### Slack Bot Not Responding
+### Slack Agent Not Responding
 - Verify bot token is valid
 - Check `/logs` for error messages
 - Ensure signing secret is correct
