@@ -116,7 +116,6 @@ Create a `.env` file with the following variables:
 ```env
 # Slack Configuration
 SLACK_BOT_TOKEN=xoxb-your-token
-SLACK_SIGNING_SECRET=your-signing-secret
 
 # JIRA Configuration
 JIRA_SERVER=https://your-jira-instance.atlassian.net
@@ -126,11 +125,6 @@ JIRA_USER_EMAIL=your-email@company.com
 # OLLAMA Configuration
 OLLAMA_HOST=http://localhost:11434
 OLLAMA_MODEL=mistral  # or your preferred model
-
-# RAG Configuration
-VECTOR_DB_HOST=localhost
-VECTOR_DB_PORT=6379
-KNOWLEDGE_BASE_PATH=./knowledge_base
 
 # Logging
 LOG_LEVEL=INFO
@@ -166,46 +160,7 @@ Once the bot is running in your Slack workspace, interact with it using these co
 
 ---
 
-## 🔧 Development
 
-### Project Structure
-
-```
-SLACK_JIRA_RAG_OLLAMA_AGENT/
-├── main.py                 # Entry point
-├── requirements.txt        # Dependencies
-├── .env.example            # Configuration template
-├── slack_bot/              # Slack integration
-│   ├── __init__.py
-│   ├── bot.py
-│   └── handlers.py
-├── jira_client/            # JIRA integration
-│   ├── __init__.py
-│   ├── client.py
-│   └── utils.py
-├── rag/                    # RAG implementation
-│   ├── __init__.py
-│   ├── retriever.py
-│   ├── embeddings.py
-│   └── vector_store.py
-├── ollama_integration/     # OLLAMA LLM client
-│   ├── __init__.py
-│   ├── client.py
-│   └── prompts.py
-├── config/                 # Configuration files
-│   ├── __init__.py
-│   └── settings.py
-└── tests/                  # Unit tests
-    ├── __init__.py
-    ├── test_slack_bot.py
-    └── test_jira_client.py
-```
-
-### Running Tests
-
-```bash
-pytest tests/ -v
-```
 
 ### Contributing
 
@@ -230,7 +185,7 @@ pytest tests/ -v
 
 ## 📊 Performance
 
-- **Response Time**: < 2 seconds for most queries
+- **Response Time**: < 5 seconds for most queries
 - **Throughput**: Handles 100+ concurrent Slack users
 - **Memory Usage**: ~2-4GB with standard models (configurable)
 - **Storage**: Vector DB index size depends on knowledge base
@@ -260,38 +215,12 @@ ollama serve
 
 ---
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## 💬 Support & Community
-
-- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/mukeshpalsaniya/SLACK_JIRA_RAG_OLLAMA_AGENT/issues)
-- **Discussions**: Join community discussions in [GitHub Discussions](https://github.com/mukeshpalsaniya/SLACK_JIRA_RAG_OLLAMA_AGENT/discussions)
-- **Documentation**: Visit the [Wiki](https://github.com/mukeshpalsaniya/SLACK_JIRA_RAG_OLLAMA_AGENT/wiki)
-
----
-
 ## 📚 Additional Resources
 
 - [OLLAMA Documentation](https://ollama.ai)
 - [Slack API Documentation](https://api.slack.com)
 - [JIRA API Documentation](https://developer.atlassian.com/cloud/jira)
 - [RAG Concepts](https://www.promptingguide.ai/techniques/rag)
-
----
-
-## 🙏 Acknowledgments
-
-Built with ❤️ for privacy-conscious teams and organizations that value data sovereignty.
 
 ---
 
