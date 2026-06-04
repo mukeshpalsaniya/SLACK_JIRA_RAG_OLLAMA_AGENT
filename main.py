@@ -1,6 +1,8 @@
-def main():
-    print("Hello from slack-jira-rag-agent!")
-
+import subprocess
+import sys
 
 if __name__ == "__main__":
-    main()
+    print("Starting Slack Jira RAG Agent...")
+    
+    # sys.executable ensures it uses the exact same Python environment
+    subprocess.run([sys.executable, "slack_app_agent.py"])
