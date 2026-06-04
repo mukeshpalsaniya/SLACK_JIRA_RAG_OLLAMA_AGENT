@@ -5,26 +5,21 @@ from sentence_transformers import SentenceTransformer
 
 class AnswerAppFromJiraRag():
 
-    
+    LLM_MODEL = "gemma4:31b-cloud"
+    EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+
+    def __init__(self):
+        self.embedding_model = SentenceTransformer(self.EMBEDDING_MODEL_NAME)
+        # print("Connecting to local ChromaDB knowledge base...")
+        chroma_client = chromadb.PersistentClient(path="./jira_knowledge_base")
+        self.collection = chroma_client.get_or_create_collection(name="jira_tickets")
+        # print(f"Connected to ChromaDB collection: {self.collection}")
 
     # ==========================================
     # 2. CONVERSATIONAL RAG LOGIC 
     # ==========================================
     def chat_with_jira_agent(self,message, history: list):
         """Processes conversational turns, keeping track of history and updating documents."""
-        # ==========================================
-        # 1. INITIALIZE SYSTEM COMPONENTS
-        # ==========================================
-        LLM_MODEL = "gemma4:31b-cloud"                 # Local Ollama model for reasoning
-        EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"  # Must match the ingestion script
-
-        # print(f"Loading Hugging Face model '{EMBEDDING_MODEL_NAME}'...")
-        embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-
-        print("Connecting to local ChromaDB knowledge base...")
-        chroma_client = chromadb.PersistentClient(path="./../llm_engineering/week5/jira_knowledge_base")
-        collection = chroma_client.get_or_create_collection(name="jira_tickets")
-        print(f"Connected to ChromaDB collection: {collection}")
         # Safe Extraction: Convert dictionary or None objects into a clean string
         user_question = ""
         if message is None:
@@ -38,10 +33,10 @@ class AnswerAppFromJiraRag():
             return "Please enter a valid question.", "*No query processed.*"
             
         # Generate query vector from user's text
-        query_vector = embedding_model.encode(user_question).tolist()
+        query_vector = self.embedding_model.encode(user_question).tolist()
         
         # Retrieve top 5 matching chunks
-        results = collection.query(
+        results = self.collection.query(
             query_embeddings=[query_vector], 
             n_results=5
         )
@@ -96,7 +91,7 @@ class AnswerAppFromJiraRag():
         
         try:
             # Run local Ollama generation pass
-            response = ollama.chat(model=LLM_MODEL, messages=messages, options={"temperature": 0.1})
+            response = ollama.chat(model=self.LLM_MODEL, messages=messages, options={"temperature": 0.1})
             answer = response['message']['content']
             
             # Appended exactly ONCE right here before returning to the chatbot box UI

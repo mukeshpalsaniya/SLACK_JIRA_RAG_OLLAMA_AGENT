@@ -90,11 +90,13 @@ def update_jira_ticket_status(ticket_key: str, target_status: str) -> str:
     available = [t['name'] for t in transitions]
     return f"Transition to '{target_status}' not available. Available transitions for {ticket_key}: {', '.join(available)}"
 
+# Singleton RAG agent instance (reused across tool calls)
+_rag_agent = AnswerAppFromJiraRag()
+
 @mcp.tool()
 def answer_question(question: str,history: list) -> str:
     """Answers a question using the RAG agent for any question not related to Jira tickets operations or math operations"""
-    rag_agent = AnswerAppFromJiraRag()
-    answer, doc_retrived = rag_agent.chat_with_jira_agent(message=question,history=history)
+    answer, doc_retrived = _rag_agent.chat_with_jira_agent(message=question,history=history)
     return answer
     
 

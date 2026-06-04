@@ -2,6 +2,7 @@
 import os
 import sys
 import asyncio
+import threading
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -20,7 +21,13 @@ SYSTEM_PROMPT = (
     """You are an expert AI assistant for "Salesforce CRM Application" Your role is to help users with Salesforce CRM Application inquiries and any business process questions that have answers in the Rag agent, and manage support tickets using your integrated Jira tools.
 
 ## Core Capabilities
-1. Answer customer and operational questions strictly using the ticket data provided to you.
+1. Answer customer and operational questions strictly using the ticket data provided to you. 
+2. **From now on, for every question I ask regarding business processes, points of contact, or system configurations, please follow these rules strictly:**
+    1. **Documentation First:** Do not rely on your internal memory or general knowledge. You must first use the answer_question tool to search the official documentation.
+    2. **Verify & Compare:** If the documentation provides multiple names or outdated information, please highlight the uncertainty rather than picking one name.
+    3. **Cite Your Source:** When providing an answer, mention that it comes from the documentation (e.g., 'According to the process guide...').
+    4. **Admit Uncertainty:** If the documentation does not contain the answer or is ambiguous, tell me 'I couldn't find a definitive answer in the documentation' instead of suggesting a person who might be wrong.
+    5. **Confirm before finalizing:** Double-check that the name or team you are suggesting matches the specific tool/issue I am asking about."
 2. Answer any question not related to Jira tickets operations or math operations using the tool 'answer_question' that uses the Rag agent to answer the question.
 3. **General & Operational Inquiries**: For any question not related to Jira tickets operations or math operations, you MUST use the tool 'answer_question'. 
   - Pass the active user message as the `user_query` argument.
@@ -104,13 +111,75 @@ def map_slack_history_to_pydantic_ai(slack_history: list) -> list:
             
     return pydantic_messages
 
+# --- PERSISTENT MCP SERVER (background thread) ---
+# Keeps the MCP subprocess alive across messages instead of spawning it per request
+_mcp_server: MCPServerStdio | None = None
+_background_loop: asyncio.AbstractEventLoop | None = None
+_background_thread: threading.Thread | None = None
+_init_done = threading.Event()
+
+
+def _get_background_loop() -> asyncio.AbstractEventLoop:
+    global _background_loop, _background_thread
+    if _background_loop is None or not _background_loop.is_running():
+        _background_loop = asyncio.new_event_loop()
+        _background_thread = threading.Thread(
+            target=_background_loop.run_forever,
+            daemon=True,
+        )
+        _background_thread.start()
+    return _background_loop
+
+
+async def _init_shared_mcp():
+    """Start the MCP server subprocess once and keep it alive forever (never exit)."""
+    global _mcp_server
+    mcp = create_mcp_server()
+    mcp.timeout = 30.0
+    await mcp.__aenter__()
+    _mcp_server = mcp
+
+
+async def _is_mcp_alive() -> bool:
+    """Check whether the MCP subprocess session is still active."""
+    if _mcp_server is None:
+        return False
+    state = _mcp_server._session_state
+    return state.session_task is not None and not state.session_task.done()
+
+
+def ensure_mcp_initialized():
+    if _init_done.is_set():
+        # Check if the server is still alive — reinit if dead
+        loop = _get_background_loop()
+        future = asyncio.run_coroutine_threadsafe(_is_mcp_alive(), loop)
+        try:
+            if future.result(timeout=10):
+                return
+        except Exception:
+            pass
+        # Server is dead — reset and reinitialize
+        _init_done.clear()
+    loop = _get_background_loop()
+    future = asyncio.run_coroutine_threadsafe(_init_shared_mcp(), loop)
+    future.result(timeout=30)
+    _init_done.set()
+
+
+# NOTE: Not initializing at module load to avoid blocking import.
+# The MCP server starts lazily on the first call to process_ensemble_thinking.
+
+
 async def execute_agent_thinking_pipeline(slack_history: list) -> str:
     """
-    Asynchronously boots the MCP context engine instance, converts 
-    Slack thread tokens, runs tool checking pipelines, and returns back raw strings.
+    Runs the agent with the shared (already-entered) MCP server.
+    The server stays alive in the background thread — no per-call enter/exit needed.
+    
+    NOTE: ensure_mcp_initialized() must have been called from a sync context
+    before this function is submitted to the background loop.
     """
     if not slack_history:
-        return "🤖 No conversation context found to compute."
+        return "No conversation context found to compute."
 
     # 1. Pop out the most recent user prompt message to feed as the main driver
     last_message = slack_history[-1].get("content", "")
@@ -119,26 +188,29 @@ async def execute_agent_thinking_pipeline(slack_history: list) -> str:
     past_history = slack_history[:-1]
     pydantic_history_payload = map_slack_history_to_pydantic_ai(past_history)
     
-    # 3. Securely hook onto the MCP local subprocess runner
-    mcp_server = create_mcp_server()
-    mcp_server.timeout = 30.0 # 30 seconds timeout to prevent hanging
-    
-    async with mcp_server as connected_server:
-        # Create a fresh context instance bound to your Ollama runtime
-        agent = create_agent(connected_server)
-        try:
-            # 4. Trigger the multi-tool check execution
-            result = await agent.run(
-                last_message, 
-                message_history=pydantic_history_payload
-            )
-            return result.output or "🤖 System computed correctly but produced no text output output summary."
-        except Exception as e:
-            return f"❌ Agent Failure executing request processing loop: {str(e)}"
+    # 3. Use the shared MCP server (already entered during init — never exited)
+    if _mcp_server is None:
+        return "MCP server not initialized. Call process_ensemble_thinking from a sync context first."
+    agent = create_agent(_mcp_server)
+    try:
+        result = await agent.run(
+            last_message, 
+            message_history=pydantic_history_payload
+        )
+        return result.output or "System computed correctly but produced no text output output summary."
+    except Exception as e:
+        return f"Agent Failure executing request processing loop: {str(e)}"
+
 
 def process_ensemble_thinking(slack_history: list) -> str:
     """
     Synchronous structural bridge called directly inside your synchronous 
     Slack Bolt handler thread loop blocks.
     """
-    return asyncio.run(execute_agent_thinking_pipeline(slack_history))
+    # Initialize MCP server from sync context (blocks main thread, not background loop)
+    ensure_mcp_initialized()
+    loop = _get_background_loop()
+    future = asyncio.run_coroutine_threadsafe(
+        execute_agent_thinking_pipeline(slack_history), loop
+    )
+    return future.result(timeout=120)

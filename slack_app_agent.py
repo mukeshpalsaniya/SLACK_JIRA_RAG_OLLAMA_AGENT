@@ -99,7 +99,8 @@ def handle_mention(event, client, say):
     
     
     print(history)
-    answer, doc_retrived = rag_agent.chat_with_jira_agent(message=user_text,history=history)
+    # answer, doc_retrived = rag_agent.chat_with_jira_agent(message=user_text,history=history)
+    answer = process_ensemble_thinking(history)
     print(answer)
     
     
@@ -146,7 +147,7 @@ def handle_message(event, client, say):
         # print(answer)
         answer = process_ensemble_thinking(history)
         print(answer)
-        
+
         
         print(f"🧵 Auto-following thread {thread_ts} | Message from <@{user_id}>: '{user_text}'")
         
